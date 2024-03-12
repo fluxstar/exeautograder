@@ -87,8 +87,24 @@ char **get_student_executables(char *solution_dir, int *num_executables) {
 
 // TODO: Implement this function
 int get_batch_size() {
-    return 8;
+    FILE *fp = fopen("/proc/cpuinfo", "r");
+    if (fp == NULL) {
+        fprintf(stderr, "Failed to open /proc/cpuinfo\n");
+        return -1; // Indicate failure
+    }
+
+    char line[256];
+    int count = 0;
+    while (fgets(line, sizeof(line), fp)) {
+        if (strncmp(line, "processor", 9) == 0) {
+            count++;
+        }
+    }
+
+    fclose(fp);
+    return count; // Return the count of "processor" occurrences
 }
+
 
 
 // TODO: Implement this function

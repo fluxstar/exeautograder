@@ -13,6 +13,8 @@ int total_params;         // Total number of parameters to test - (argc - 2)
 // Contains status of child processes (-1 for done, 1 for still running)
 int *child_status;
 
+#define BUFFER_SIZE 256   // Buffer size for output file
+
 
 // TODO: Timeout handler for alarm signal
 void timeout_handler(int signum) {
@@ -34,15 +36,53 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
         char *executable_name = get_exe_name(executable_path);
 
         // TODO (Change 1): Redirect STDOUT to output/<executable>.<input> file
+        // REQUIRES TESTING
+        char output_file[BUFFER_SIZE];
+        sprintf(output_file, "output/%s.%s", executable_name, input);
+        int output_fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC);
+        if (output_fd == -1) {  
+            perror("open");
+            exit(1);
+        }
 
+        if (dup2(output_fd, STDOUT_FILENO) == -1) {
+            perror("dup2");
+            close(output_fd);
+            exit(1);
+        }
+
+        unlink(output_file);
 
         // TODO (Change 2): Handle different cases for input source
         #ifdef EXEC
+        char input_path[256];
+        sprintf(input_file, "input/%s.%s", executable_name, input);
+        int input_fd = open(input_path, O_RDONLY);
+        if (input_fd == -1){
+            fprintf(stderr, "failed to open input file %s\n", input_path);
+            
+        }
 
 
         #elif REDIR
             
             // TODO: Redirect STDIN to input/<input>.in file
+            // REQUIRES TESTING
+            char input_file[BUFFER_SIZE];
+            sprintf(input_file, "input/%s.in", input);
+            int input_fd = open(input_file, O_RDONLY);
+            if (input_fd == -1) {  
+                perror("open");
+                exit(1);
+            }
+
+            if (dup2(input_fd, STDIN_FILENO) == -1) {
+                perror("dup2");
+                close(input_fd);
+                exit(1);
+            }
+
+            unlink(input_file);
             
 
         #elif PIPE
