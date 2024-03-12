@@ -26,6 +26,12 @@ void timeout_handler(int signum) {
 void execute_solution(char *executable_path, char *input, int batch_idx) {
     #ifdef PIPE
         // TODO: Setup pipe
+        int pipefd[2];
+        if (pipe(pipefd) == -1) {
+            perror("pipe");
+            exit(1);
+        }
+        
 
     #endif
     
@@ -39,7 +45,7 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
         // REQUIRES TESTING
         char output_file[BUFFER_SIZE];
         sprintf(output_file, "output/%s.%s", executable_name, input);
-        int output_fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC);
+        int output_fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
         if (output_fd == -1) {  
             perror("open");
             exit(1);
@@ -55,12 +61,19 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
 
         // TODO (Change 2): Handle different cases for input source
         #ifdef EXEC
+        printf("%s %s %s\n", executable_path, executable_name, input);
+        execlp(executable_path, executable_name, input, (char *)NULL);
         char input_path[256];
-        sprintf(input_file, "input/%s.%s", executable_name, input);
+        sprintf(input_path, "input/%s.%s", executable_name, input);
         int input_fd = open(input_path, O_RDONLY);
         if (input_fd == -1){
-            fprintf(stderr, "failed to open input file %s\n", input_path);
-            
+            perror("open");
+            exit(1);
+        if (dup2(input_fd, STDOUT_FILENO) == -1) {
+            perror("dup2");
+            close(input_fd);
+            exit(1);
+        }
         }
 
 
@@ -68,9 +81,10 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
             
             // TODO: Redirect STDIN to input/<input>.in file
             // REQUIRES TESTING
+            // TODO: Fix error where two of the file reads say "no such file or directory"
             char input_file[BUFFER_SIZE];
             sprintf(input_file, "input/%s.in", input);
-            int input_fd = open(input_file, O_RDONLY);
+            int input_fd = open(input_file, O_RDONLY | O_CREAT, 0666);
             if (input_fd == -1) {  
                 perror("open");
                 exit(1);
@@ -88,6 +102,14 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
         #elif PIPE
             
             // TODO: Pass read end of pipe to child process
+            // REQUIRES TESTING
+            if (dup2(pipefd[0], STDIN_FILENO) == -1) {
+                perror("dup2");
+                close(pipefd[0]);
+                exit(1);
+            }
+
+            close(pipefd[0]);
 
         #endif
 
@@ -99,6 +121,11 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
     else if (pid > 0) {
         #ifdef PIPE
             // TODO: Send input to child process via pipe
+            // REQUIRES TESTING
+            char input_message[BUFFER_SIZE];
+            sprintf(input_message, "%s\n", input);
+            write(pipefd[1], input_message, strlen(input_message));
+            close(pipefd[1]);
             
         #endif
 
