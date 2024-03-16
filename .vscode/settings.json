@@ -1,7 +1,5 @@
 {
     "files.associations": {
-        "*.ipp": "c",
-        "*.tcc": "c",
-        "fstream": "c"
+        "utils.h": "c"
     }
 }

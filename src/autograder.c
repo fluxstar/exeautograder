@@ -13,14 +13,11 @@ int total_params;         // Total number of parameters to test - (argc - 2)
 // Contains status of child processes (-1 for done, 1 for still running)
 int *child_status;
 
-#define BUFFER_SIZE 256   // Buffer size for output file
 
-
-// TODO: Timeout handler for alarm signal
+// TODO (Change 3): Timeout handler for alarm signal - kill remaining running child processes
 void timeout_handler(int signum) {
 
 }
-
 
 // Execute the student's executable using exec()
 void execute_solution(char *executable_path, char *input, int batch_idx) {
@@ -28,11 +25,9 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
         // TODO: Setup pipe
         int pipefd[2];
         if (pipe(pipefd) == -1) {
-            perror("pipe");
+            perror("couldn't create pipes");
             exit(1);
         }
-        
-
     #endif
     
     pid_t pid = fork();
@@ -42,8 +37,7 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
         char *executable_name = get_exe_name(executable_path);
 
         // TODO (Change 1): Redirect STDOUT to output/<executable>.<input> file
-        // REQUIRES TESTING
-        char output_file[BUFFER_SIZE];
+        char output_file[BUFSIZ];
         sprintf(output_file, "output/%s.%s", executable_name, input);
         int output_fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
         if (output_fd == -1) {  
@@ -57,60 +51,45 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
             exit(1);
         }
 
-        unlink(output_file);
+        printf("test\n");
+        return;
 
         // TODO (Change 2): Handle different cases for input source
         #ifdef EXEC
-        printf("%s %s %s\n", executable_path, executable_name, input);
-        execlp(executable_path, executable_name, input, (char *)NULL);
-        char input_path[256];
-        sprintf(input_path, "input/%s.%s", executable_name, input);
-        int input_fd = open(input_path, O_RDONLY);
-        if (input_fd == -1){
+
+        // printf("%s %s %s\n", executable_path, executable_name, input);
+        execlp(executable_path, executable_name, input, (char *) NULL);
+        
+        #elif REDIR
+            
+            // TODO: Redirect STDIN to input/<input>.in file
+
+        char input_file[BUFSIZ];
+        sprintf(input_file, "input/%s.in", input);
+        int input_fd = open(input_file, O_RDONLY | O_CREAT, 0666);
+
+        if (input_fd == -1) {  
             perror("open");
             exit(1);
-        if (dup2(input_fd, STDOUT_FILENO) == -1) {
+        }
+
+        if (dup2(input_fd, STDIN_FILENO) == -1) {
             perror("dup2");
             close(input_fd);
             exit(1);
         }
-        }
-
-
-        #elif REDIR
-            
-            // TODO: Redirect STDIN to input/<input>.in file
-            // REQUIRES TESTING
-            // TODO: Fix error where two of the file reads say "no such file or directory"
-            char input_file[BUFFER_SIZE];
-            sprintf(input_file, "input/%s.in", input);
-            int input_fd = open(input_file, O_RDONLY | O_CREAT, 0666);
-            if (input_fd == -1) {  
-                perror("open");
-                exit(1);
-            }
-
-            if (dup2(input_fd, STDIN_FILENO) == -1) {
-                perror("dup2");
-                close(input_fd);
-                exit(1);
-            }
-
-            unlink(input_file);
-            
 
         #elif PIPE
             
             // TODO: Pass read end of pipe to child process
-            // REQUIRES TESTING
-            if (dup2(pipefd[0], STDIN_FILENO) == -1) {
-                perror("dup2");
-                close(pipefd[0]);
-                exit(1);
-            }
 
+        if (dup2(pipefd[0], STDIN_FILENO) == -1) {
+            perror("dup2");
             close(pipefd[0]);
+            exit(1);
+        }
 
+        close(pipefd[0]);
         #endif
 
         // If exec fails
@@ -121,15 +100,8 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
     else if (pid > 0) {
         #ifdef PIPE
             // TODO: Send input to child process via pipe
-            // REQUIRES TESTING
-            char input_message[BUFFER_SIZE];
-            sprintf(input_message, "%s\n", input);
-            write(pipefd[1], input_message, strlen(input_message));
-            close(pipefd[1]);
             
         #endif
-
-        // TODO (Change 3): Setup timer to determine if child process is stuck
         
 
         pids[batch_idx] = pid;
@@ -156,6 +128,9 @@ void monitor_and_evaluate_solutions(int tested, char *param, int param_idx) {
         int status;
         pid_t pid = waitpid(pids[j], &status, 0);
 
+        // TODO: What if waitpid is interrupted by a signal?
+        
+
         // TODO: Determine if the child process finished normally, segfaulted, or timed out
         int exit_status = WEXITSTATUS(status);
         int exited = WIFEXITED(status);
@@ -163,6 +138,9 @@ void monitor_and_evaluate_solutions(int tested, char *param, int param_idx) {
         
         
         // TODO: Also, update the results struct with the status of the child process
+
+        // NOTE: Make sure you are using the output/<executable>.<input> file to determine the status
+        //       of the child process, NOT the exit status like in Project 1.
 
 
         // Adding tested parameter to results struct
@@ -172,13 +150,8 @@ void monitor_and_evaluate_solutions(int tested, char *param, int param_idx) {
         child_status[j] = -1;
     }
 
-    // TODO: Cancel the timer
-
-
     free(child_status);
 }
-
-
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
@@ -203,7 +176,7 @@ int main(int argc, char *argv[]) {
     }
 
     #ifdef REDIR
-        // TODO: Create the input/<input>.in files        
+        // TODO: Create the input/<input>.in files and write the parameters to them
         create_input_files(argv + 2, total_params);  // Implement this function (src/utils.c)
     #endif
     
@@ -219,18 +192,25 @@ int main(int argc, char *argv[]) {
             curr_batch_size = remaining < batch_size ? remaining : batch_size;
             pids = malloc(curr_batch_size * sizeof(pid_t));
 		
-            // Execute the programs in batch size chunks
+            // TODO: Execute the programs in batch size chunks
             for (int j = 0; j < curr_batch_size; j++) {
                 execute_solution(executable_paths[tested], argv[i], j);
 		        tested++;
             }
 
-            // Wait for the batch to finish and check results
+            // TODO (Change 3): Setup timer to determine if child process is stuck
+            start_timer(TIMEOUT_SECS, timeout_handler);  // Implement this function (src/utils.c)
+
+            // TODO: Wait for the batch to finish and check results
             monitor_and_evaluate_solutions(tested, argv[i], i - 2);
+
+            // TODO: Cancel the timer if all child processes have finished
+            if (child_status == NULL) {
+                cancel_timer();  // Implement this function (src/utils.c)
+            }
 
             // TODO Unlink all output files in current batch (output/<executable>.<input>)
             remove_output_files(results, tested, curr_batch_size, argv[i]);  // Implement this function (src/utils.c)
-            
 
             // Adjust the remaining count after the batch has finished
             remaining -= curr_batch_size;
@@ -263,4 +243,4 @@ int main(int argc, char *argv[]) {
     free(pids);
     
     return 0;
-}     
+}

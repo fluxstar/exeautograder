@@ -12,9 +12,10 @@ void infinite_loop() {
 int main(int argc, char *argv[]) {
     #ifndef REDIR
         if (argc < 2) {
-            // Usage for  EXEC:  argv[0] <param>    # Input is just param
-            // Usage for  PIPE:  argv[0] <pipefd>   # Input is read end pipe fd
-            // Usage for REDIR:  argv[0]            # No param needed, read from stdin
+            // Usage for   EXEC:  argv[0] <param>    # Input is just param
+            // Usage for   PIPE:  argv[0] <pipefd>   # Input is read end pipe fd
+            // Usage for  REDIR:  argv[0]            # No param needed, read from stdin
+            // Usage for MQUEUE:  argv[0] <param>    # Input is just param
             printf("Usage: %s <parameter | pipefd>\n", argv[0]);
             return 1;
         }
@@ -26,17 +27,21 @@ int main(int argc, char *argv[]) {
         seed += (unsigned char)argv[0][i]; 
     }
 
-    unsigned int param = 0;
+    int param = 0;
 
     // TODO: Get input param from the different sources
     #ifdef EXEC
+        
         
 
     #elif REDIR
        
         
     #elif PIPE
-        
+
+
+    #elif MQUEUE
+
 
     #endif
 
@@ -45,8 +50,6 @@ int main(int argc, char *argv[]) {
   
     int mode = random() % 5 + 1;
     pid_t pid = getpid(); 
-
-    sleep(1); 
 
     switch (mode) {
         case 1:

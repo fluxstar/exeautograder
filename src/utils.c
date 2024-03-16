@@ -17,15 +17,6 @@ char *get_exe_name(char *path) {
 }
 
 
-int get_tag(char *executable_name) {
-    unsigned int seed = 0;
-    for (int i = 0; i < strlen(executable_name); i++) {
-        seed += (int)executable_name[i];
-    }
-    return seed;
-}
-
-
 char **get_student_executables(char *solution_dir, int *num_executables) {
     DIR *dir;
     struct dirent *entry;
@@ -106,11 +97,33 @@ int get_batch_size() {
 }
 
 
-
 // TODO: Implement this function
 void create_input_files(char **argv_params, int num_parameters) {
+    for (int i = 0; i < num_parameters; ++i) {
+        char buff[BUFSIZ];
+        sprintf(buff, "input/%s.in", argv_params[i]);
+        int fd = open(buff, O_RDONLY, O_CREAT, 0666);
+
+        if (fd == -1) {
+            perror("error creating input files");
+            exit(1);
+        }
+        close(fd);
+    }
+}
+
+
+// TODO: Implement this function
+void start_timer(int seconds, void (*timeout_handler)(int)) {
 
 }
+
+
+// TODO: Implement this function
+void cancel_timer() {
+
+}
+
 
 // TODO: Implement this function
 void remove_input_files(char **argv_params, int num_parameters) {
