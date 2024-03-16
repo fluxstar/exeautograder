@@ -51,9 +51,6 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
             exit(1);
         }
 
-        printf("test\n");
-        return;
-
         // TODO (Change 2): Handle different cases for input source
         #ifdef EXEC
 
@@ -66,7 +63,9 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
 
         char input_file[BUFSIZ];
         sprintf(input_file, "input/%s.in", input);
+        printf("%s\n", input_file);
         int input_fd = open(input_file, O_RDONLY | O_CREAT, 0666);
+        
 
         if (input_fd == -1) {  
             perror("open");
@@ -79,6 +78,8 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
             exit(1);
         }
 
+        execlp(executable_path, executable_name, (char *) NULL);
+
         #elif PIPE
             
             // TODO: Pass read end of pipe to child process
@@ -90,6 +91,8 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
         }
 
         close(pipefd[0]);
+        execlp(executable_path, executable_name, (char *) NULL);
+
         #endif
 
         // If exec fails
@@ -178,6 +181,7 @@ int main(int argc, char *argv[]) {
     #ifdef REDIR
         // TODO: Create the input/<input>.in files and write the parameters to them
         create_input_files(argv + 2, total_params);  // Implement this function (src/utils.c)
+        // fill file(s) with params in argv 
     #endif
     
     // MAIN LOOP: For each parameter, run all executables in batch size chunks

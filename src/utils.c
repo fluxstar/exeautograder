@@ -102,12 +102,18 @@ void create_input_files(char **argv_params, int num_parameters) {
     for (int i = 0; i < num_parameters; ++i) {
         char buff[BUFSIZ];
         sprintf(buff, "input/%s.in", argv_params[i]);
-        int fd = open(buff, O_RDONLY, O_CREAT, 0666);
+        int fd = open(buff, O_RDWR | O_CREAT, 0666);
 
         if (fd == -1) {
             perror("error creating input files");
             exit(1);
         }
+
+        if (write(fd, argv_params[i], strlen(argv_params[i])) == -1) {
+            perror("error writing to input file");
+            close(fd);
+            exit(1);
+    }
         close(fd);
     }
 }
@@ -127,13 +133,27 @@ void cancel_timer() {
 
 // TODO: Implement this function
 void remove_input_files(char **argv_params, int num_parameters) {
-
+    for (int i = 0; i < num_parameters; ++i) {
+    char buff[BUFSIZ];
+    sprintf(buff, "input/%s.in", argv_params[i]);
+        if (unlink(buff) == -1) {
+            perror("error removing input files");
+            exit(1);
+        }
+    }
 }
 
 
 // TODO: Implement this function
 void remove_output_files(autograder_results_t *results, int tested, int current_batch_size, char *param) {
-
+    for (int i = 0; i < tested; i++) {
+        char buff[BUFSIZ];
+        sprintf(buff, "output/%s.%s", get_exe_name(results[i].exe_path), param);
+        if (unlink(buff) == -1) {
+            perror("error removing output files");
+            exit(1);
+        }
+    }
 }
 
 

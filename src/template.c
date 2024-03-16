@@ -32,11 +32,14 @@ int main(int argc, char *argv[]) {
     // TODO: Get input param from the different sources
     #ifdef EXEC
         
-        
+    param = atoi(argv[1]);
+    // printf("exec: %d\n", param);
 
     #elif REDIR
-       
-        
+    
+    scanf("%d", &param);
+    // printf("redir: %d\n", param);
+    
     #elif PIPE
 
 
@@ -59,11 +62,15 @@ int main(int argc, char *argv[]) {
             //       Do not open the file. Think about what function you can use to output
             //       information given what you redirected in the autograder.c file.
 
+            // printf("%d\n", 0);
+
             break;
         case 2:
             fprintf(stderr, "Program: %s, PID: %d, Mode: 2 - Exiting with status 1 (Incorrect answer)\n", argv[0], pid);
             // TODO: Write the result (1) to the output file (same as case 1 above)
             
+            // printf("%d\n", 1);
+
             break;
         case 3:
             fprintf(stderr, "Program: %s, PID: %d, Mode: 3 - Triggering a segmentation fault\n", argv[0], pid);

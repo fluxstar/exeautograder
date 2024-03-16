@@ -1,0 +1,10 @@
+Team Members: 
+    krant115 (Logan Krant)
+    abuka032 (Abdulwahid Abukar)
+    phimp003 (Jimmy Phimpadabsee)
+
+How to compile: 
+    for exec: make exec 
+    for redir: make redir
+    to run autograde: ./autograder solution n 
+
