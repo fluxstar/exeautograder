@@ -16,7 +16,24 @@ int *child_status;
 
 // TODO (Change 3): Timeout handler for alarm signal - kill remaining running child processes
 void timeout_handler(int signum) {
+    pid_t pid;
+    int status;
 
+    /* TODO: 
+        * Reclaim child resources to complete Change 3 in autograder.c (doing so in timeout_handler breaks the program)
+        * Begin Change 4 in mq_autograder.c
+        * Implement get_score()
+    */
+
+    // Kill everything 
+    for (int i = 0; i < curr_batch_size; ++i) {
+        kill(pids[i], SIGKILL);
+    }
+
+    // Reclaim resources
+    // for (int i = 0; i < curr_batch_size; ++i) {
+    //     wait(NULL);
+    // }
 }
 
 // Execute the student's executable using exec()
@@ -36,6 +53,8 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
     if (pid == 0) {
         char *executable_name = get_exe_name(executable_path);
 
+        int print_fd = STDOUT_FILENO;
+
         // TODO (Change 1): Redirect STDOUT to output/<executable>.<input> file
         char output_file[BUFSIZ];
         sprintf(output_file, "output/%s.%s", executable_name, input);
@@ -53,19 +72,18 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
 
         // TODO (Change 2): Handle different cases for input source
         #ifdef EXEC
-
+                    
         // printf("%s %s %s\n", executable_path, executable_name, input);
         execlp(executable_path, executable_name, input, (char *) NULL);
         
         #elif REDIR
             
-            // TODO: Redirect STDIN to input/<input>.in file
+        // TODO: Redirect STDIN to input/<input>.in file
 
         char input_file[BUFSIZ];
         sprintf(input_file, "input/%s.in", input);
         printf("%s\n", input_file);
         int input_fd = open(input_file, O_RDONLY | O_CREAT, 0666);
-        
 
         if (input_fd == -1) {  
             perror("open");
@@ -77,22 +95,21 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
             close(input_fd);
             exit(1);
         }
-
+        
+        // printf("%s %s %s\n", executable_path, executable_name, input);
         execlp(executable_path, executable_name, (char *) NULL);
 
         #elif PIPE
-            
-            // TODO: Pass read end of pipe to child process
+            // TODO: Pass read end of pipe to child process 
+        close(pipefd[1]); // close write end of pipe
+        // write(STDERR_FILENO, &pipefd[0], sizeof(pipefd[0]));
 
-        if (dup2(pipefd[0], STDIN_FILENO) == -1) {
-            perror("dup2");
-            close(pipefd[0]);
-            exit(1);
-        }
-
-        close(pipefd[0]);
-        execlp(executable_path, executable_name, (char *) NULL);
-
+        // printf("%s\n", pipefd[0]);
+        char fd_str[10];  // Buffer to hold the string representation of the file descriptor
+        sprintf(fd_str, "%d", pipefd[0]);  // Convert the file descriptor to a string
+        
+        execlp(executable_path, executable_name, fd_str, (char *) NULL);
+        
         #endif
 
         // If exec fails
@@ -102,10 +119,15 @@ void execute_solution(char *executable_path, char *input, int batch_idx) {
     // Parent process
     else if (pid > 0) {
         #ifdef PIPE
-            // TODO: Send input to child process via pipe
+            // TODO: Send input to child process via pipe 
+            close(pipefd[0]);
+            write(pipefd[1], input, strlen(input));
+            close(pipefd[1]); // Signal EOF 
+
+            // Store the PID for later
+            pids[batch_idx] = pid;
             
         #endif
-        
 
         pids[batch_idx] = pid;
     }
@@ -132,15 +154,55 @@ void monitor_and_evaluate_solutions(int tested, char *param, int param_idx) {
         pid_t pid = waitpid(pids[j], &status, 0);
 
         // TODO: What if waitpid is interrupted by a signal?
-        
+
+        // Keep waiting for children while interrupted
+        while (pid == -1 && errno == EINTR) {
+            pid = waitpid(pids[j], &status, 0);
+        }
 
         // TODO: Determine if the child process finished normally, segfaulted, or timed out
         int exit_status = WEXITSTATUS(status);
         int exited = WIFEXITED(status);
         int signaled = WIFSIGNALED(status);
-        
-        
+
+        // Programs either exit with a status or are killed by a signal
+        if (signaled) {
+            int signal_number = WTERMSIG(status);
+            
+            if (signal_number == SIGKILL) {
+                // Child process was killed by the alarm
+                results[tested - curr_batch_size + j].status[param_idx] = STUCK_OR_INFINITE;
+            } else if (signal_number == SIGSEGV) {
+                // Child process triggered a segmentation fault
+                write(STDERR_FILENO, "seg\n", 4);
+                results[tested - curr_batch_size + j].status[param_idx] = SEGFAULT;
+            }
+        }
+
         // TODO: Also, update the results struct with the status of the child process
+        char output_file[BUFSIZ];
+        char* filename = strrchr(results[tested - curr_batch_size + j].exe_path, '/');
+        if (filename != NULL) {
+            ++filename;
+        }
+        sprintf(output_file, "output/%s.%s", filename, param);
+        int output_fd = open(output_file, O_RDONLY);
+        if (output_fd == -1) {  
+            perror("open");
+            exit(1);
+        }
+        char buffer[BUFSIZ];
+        ssize_t num_bytes = read(output_fd, buffer, sizeof(buffer));
+        if (num_bytes == -1) {
+            perror("read");
+            exit(1);
+        }
+
+        if (num_bytes != 0) {
+            buffer[num_bytes] = '\0';  // Null-terminate the buffer
+            results[tested - curr_batch_size + j].status[param_idx] = atoi(buffer);
+        }
+        close(output_fd);
 
         // NOTE: Make sure you are using the output/<executable>.<input> file to determine the status
         //       of the child process, NOT the exit status like in Project 1.
@@ -214,7 +276,7 @@ int main(int argc, char *argv[]) {
             }
 
             // TODO Unlink all output files in current batch (output/<executable>.<input>)
-            remove_output_files(results, tested, curr_batch_size, argv[i]);  // Implement this function (src/utils.c)
+            // remove_output_files(results, tested, curr_batch_size, argv[i]);  // Implement this function (src/utils.c)
 
             // Adjust the remaining count after the batch has finished
             remaining -= curr_batch_size;
