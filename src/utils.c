@@ -142,6 +142,7 @@ void start_timer(int seconds, void (*timeout_handler)(int)) {
         perror("error setting timer");
         exit(1);
     }
+    write(STDERR_FILENO, "timer set\n", 10);
 }
 
 

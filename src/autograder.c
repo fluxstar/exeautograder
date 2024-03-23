@@ -13,27 +13,20 @@ int total_params;         // Total number of parameters to test - (argc - 2)
 // Contains status of child processes (-1 for done, 1 for still running)
 int *child_status;
 
+    /* TODO: 
+        * Begin Change 4 in mq_autograder.c
+        * Implement get_score()
+    */
 
 // TODO (Change 3): Timeout handler for alarm signal - kill remaining running child processes
 void timeout_handler(int signum) {
     pid_t pid;
     int status;
 
-    /* TODO: 
-        * Reclaim child resources to complete Change 3 in autograder.c (doing so in timeout_handler breaks the program)
-        * Begin Change 4 in mq_autograder.c
-        * Implement get_score()
-    */
-
     // Kill everything 
     for (int i = 0; i < curr_batch_size; ++i) {
         kill(pids[i], SIGKILL);
     }
-
-    // Reclaim resources
-    // for (int i = 0; i < curr_batch_size; ++i) {
-    //     wait(NULL);
-    // }
 }
 
 // Execute the student's executable using exec()
@@ -174,7 +167,6 @@ void monitor_and_evaluate_solutions(int tested, char *param, int param_idx) {
                 results[tested - curr_batch_size + j].status[param_idx] = STUCK_OR_INFINITE;
             } else if (signal_number == SIGSEGV) {
                 // Child process triggered a segmentation fault
-                write(STDERR_FILENO, "seg\n", 4);
                 results[tested - curr_batch_size + j].status[param_idx] = SEGFAULT;
             }
         }
@@ -276,7 +268,7 @@ int main(int argc, char *argv[]) {
             }
 
             // TODO Unlink all output files in current batch (output/<executable>.<input>)
-            // remove_output_files(results, tested, curr_batch_size, argv[i]);  // Implement this function (src/utils.c)
+            remove_output_files(results, tested, curr_batch_size, argv[i]);  // Implement this function (src/utils.c)
 
             // Adjust the remaining count after the batch has finished
             remaining -= curr_batch_size;
