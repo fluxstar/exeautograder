@@ -118,16 +118,41 @@ void create_input_files(char **argv_params, int num_parameters) {
     }
 }
 
-
 // TODO: Implement this function
 void start_timer(int seconds, void (*timeout_handler)(int)) {
+    // block all signals except alarm while handling it
+    struct sigaction sa;
+    sa.sa_handler = timeout_handler;
+    sigfillset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    
+    if (sigaction(SIGALRM, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(1);
+    }
 
+    // set to send SIGALRM every TIMEOUT_SECS
+    struct itimerval timer;
+    timer.it_value.tv_sec = TIMEOUT_SECS;
+    timer.it_value.tv_usec = 0;
+    timer.it_interval.tv_sec = 0;
+    timer.it_interval.tv_usec = 0;
+
+    if (setitimer(ITIMER_REAL, &timer, NULL) == -1) {
+        perror("error setting timer");
+        exit(1);
+    }
 }
 
 
 // TODO: Implement this function
 void cancel_timer() {
-
+    struct itimerval timer; 
+    memset(&timer, 0, sizeof(timer)); // Make timer struct 0 to cancel out ongoing timer
+    if (setitimer(ITIMER_REAL, &timer, NULL) == -1) { // Call setitimer with a 0 interval to stop the timer
+        perror("error cancelling timer");
+        exit(1);
+    }
 }
 
 
