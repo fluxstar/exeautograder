@@ -51,10 +51,6 @@ int main(int argc, char *argv[]) {
 
     param = atoi(param_str);
 
-    // param = atoi(param);
-    // param = (int) param;
-    // param -= '0'; // Convert from ASCII to int
-
     close(fd);
 
     #elif MQUEUE

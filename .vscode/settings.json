@@ -9,7 +9,8 @@
         "string": "c",
         "istream": "c",
         "streambuf": "c",
-        "source_location": "c"
+        "source_location": "c",
+        "random": "c"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }

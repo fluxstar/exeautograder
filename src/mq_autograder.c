@@ -299,7 +299,27 @@ int main(int argc, char *argv[]) {
         // we don't care about the batch size here, so we pass in num_executables twice
         remove_output_files(results, num_executables, num_executables, argv[i]); 
     }
-    
+
+    // sort results (order of parameters based on how the autograder
+    // sends out work order as we wait/receive data from workers in 
+    // sequential order which we don't control)
+    if (total_params > 1) {
+        for (int i = 0; i < num_executables; ++i) {
+            for (int j = 1; j < total_params; ++j) {
+                int key = results[i].params_tested[j];
+                int key_status = results[i].status[j];
+                int k = j - 1;
+                while (k > -1 && results[i].params_tested[k] > key) {
+                    results[i].params_tested[k + 1] = results[i].params_tested[k];
+                    results[i].status[k + 1] = results[i].status[k];
+                    --k; 
+                }
+                results[i].params_tested[k + 1] = key;
+                results[i].status[k + 1] = key_status;
+            }
+        }
+    }
+
     // print results 
     // for (int i = 0; i < num_executables; ++i) {
     //     for (int j = 0; j < total_params; ++j) {

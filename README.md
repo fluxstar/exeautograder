@@ -1,11 +1,12 @@
 Created by Group 31:
 - abuka032 (Abdulwahid Abukar)
-    -  Assisted with STDOUT/STDIN redirection
-    -  Implemented transfer of input parameter through pipes
+    - Assisted with STDOUT/STDIN redirection
+    - assisted transfer of input parameter through pipes
     - Implemented get_batch_size
     - Implemented remove_input_files
     - Implemented cancel_timer
-    - Im
+    - Implemented timeout_handler
+    - Assisted with autograder debugging
 - krant115 (Logan Krant)
     - Implemented STDOUT/STDIN redirection skeleton
     - Wrote code to update results struct with statuses using output files
@@ -15,6 +16,11 @@ Created by Group 31:
     - Assisted with timer implementation
     - Assisted with mqueue debugging
 - phimp003 (Jimmy Phimpadabsee)
+    - implemented mq_autograder and worker
+    - assisted in writing pipe code
+    - assisted in debugging exec and pipe errors
+    - assisted in debugging incorrect/no param passed to template
+    - assisted in structuring/writing monitor_and_evaluate_solutions
 
 How to compile the program: run "make <exec/redir/pipe/mqueue> N=<# of tests>" in the terminal while inside the p2 folder
 Run the compiled autograder as follows: 
