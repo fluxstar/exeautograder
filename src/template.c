@@ -32,25 +32,34 @@ int main(int argc, char *argv[]) {
     // TODO: Get input param from the different sources
     #ifdef EXEC
 
-    param = atoi((char *) argv[1]);
+    param = atoi((char *) argv[1]); // Param passed as argument
 
     #elif REDIR
     
-    scanf("%d", &param);
+    scanf("%d", &param); // Param passed through stdin
     
     #elif PIPE
-    int fd = atoi(argv[1]);  // Convert the string to an integer
+    int fd = atoi(argv[1]);  // Pipe fd passed as argument
+    char param_str[BUFSIZ];
+    // memset(param_str, 0, sizeof(param_str));
 
-    if ((read(fd, &param, sizeof(param))) == -1) {
+    // if ((read(fd, &param, sizeof(param))) == -1) { // Read from pipe
+    if (read(fd, param_str, sizeof(param_str)) == -1) {
         perror("pipe read");
         exit(1);
     }
-    
+
+    param = atoi(param_str);
+
+    // param = atoi(param);
+    // param = (int) param;
+    // param -= '0'; // Convert from ASCII to int
+
     close(fd);
 
     #elif MQUEUE
 
-    param = atoi((char *) argv[1]);
+    param = atoi((char *) argv[1]); // Param passed as argument
 
     #endif
 
@@ -68,13 +77,13 @@ int main(int argc, char *argv[]) {
             //       Do not open the file. Think about what function you can use to output
             //       information given what you redirected in the autograder.c file.
 
-            printf("%d", 1);
+            printf("%d", 0);
             break;
         case 2:
             fprintf(stderr, "Program: %s, Param: %d, PID: %d, Mode: 2 - Exiting with status 1 (Incorrect answer)\n", argv[0], param, pid);
             // TODO: Write the result (1) to the output file (same as case 1 above)
             
-            printf("%d", 2);
+            printf("%d", 1);
             break;
         case 3:
             fprintf(stderr, "Program: %s, Param: %d, PID: %d, Mode: 3 - Triggering a segmentation fault\n", argv[0], param, pid);

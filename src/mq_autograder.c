@@ -140,7 +140,7 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
             
             // int param_stat_idx = 0;
             while (1) {
-                write(STDERR_FILENO, "receiving results...\n", 22);
+                // write(STDERR_FILENO, "receiving results...\n", 22);
 
                 msgbuf_t worker_msg;
                 char executable_path[BUF_SIZE];
@@ -154,10 +154,10 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
                 }
 
                 if (strcmp("DONE", worker_msg.mtext) == 0) {
-                    char done_msg[128];
-                    memset(done_msg, 0, 128);
-                    sprintf(done_msg, "worker %d done, no longer monitoring for\n", i + 1);
-                    write(STDERR_FILENO, done_msg, strlen(done_msg));
+                    // char done_msg[128];
+                    // memset(done_msg, 0, 128);
+                    // sprintf(done_msg, "worker %d done, no longer monitoring for\n", i + 1);
+                    // write(STDERR_FILENO, done_msg, strlen(done_msg));
 
                     worker_done[i] = 1;
                     break;
@@ -168,10 +168,10 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
                     exit(1);
                 }
 
-                char wr_msg[BUFSIZ];
-                memset(wr_msg, 0, BUFSIZ);
-                sprintf(wr_msg, "received:\n%s %d %d\n", executable_path, param, status);
-                write(STDERR_FILENO, wr_msg, strlen(wr_msg));
+                // char wr_msg[BUFSIZ];
+                // memset(wr_msg, 0, BUFSIZ);
+                // sprintf(wr_msg, "received:\n%s %d %d\n", executable_path, param, status);
+                // write(STDERR_FILENO, wr_msg, strlen(wr_msg));
 
                 int results_idx = 0;
                 for (int i = 0; i < num_executables; ++i) {
@@ -183,41 +183,23 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
                 results[results_idx].params_tested[param_stat_idx[results_idx]] = param;
                 results[results_idx].status[param_stat_idx[results_idx]] = status;
  
-                char result_msg[BUFSIZ];
-                memset(result_msg, 0, sizeof(result_msg));
-                sprintf(result_msg, 
-                        "(%d, %d)\n---------------------\nexe_path: %s\nparam: %d\nstatus: %d\n---------------------\n",
-                        results_idx, param_stat_idx[results_idx],
-                        results[results_idx].exe_path,
-                        results[results_idx].params_tested[param_stat_idx[results_idx]],
-                        results[results_idx].status[param_stat_idx[results_idx]]);
-                write(STDERR_FILENO, result_msg, strlen(result_msg));
-                ++received;
-                ++param_stat_idx[results_idx];
-
-                // results[results_idx].params_tested[param_stat_idx] = param;
-                // results[results_idx].status[param_stat_idx] = status;
-
                 // char result_msg[BUFSIZ];
                 // memset(result_msg, 0, sizeof(result_msg));
                 // sprintf(result_msg, 
                 //         "(%d, %d)\n---------------------\nexe_path: %s\nparam: %d\nstatus: %d\n---------------------\n",
-                //         results_idx, param_stat_idx,
+                //         results_idx, param_stat_idx[results_idx],
                 //         results[results_idx].exe_path,
-                //         results[results_idx].params_tested[param_stat_idx],
-                //         results[results_idx].status[param_stat_idx]);
+                //         results[results_idx].params_tested[param_stat_idx[results_idx]],
+                //         results[results_idx].status[param_stat_idx[results_idx]]);
                 // write(STDERR_FILENO, result_msg, strlen(result_msg));
-
-                // ++received;
-                // if (received % num_executables == 0) {
-                //     ++param_stat_idx;
-                // }
+                ++received;
+                ++param_stat_idx[results_idx];
             }
         }
     }
     free(param_stat_idx);
     free(worker_done);
-    write(STDERR_FILENO, "grader done waiting for workers\n", 33);
+    // write(STDERR_FILENO, "grader done waiting for workers\n", 33);
 }
 
 
@@ -268,10 +250,10 @@ int main(int argc, char *argv[]) {
         launch_worker(msqid, pairs_per_worker, i + 1);
     }
 
-    char num_workers_str[32];
-    memset(&num_workers_str, 0, sizeof(num_workers_str));
-    sprintf(num_workers_str, "workers: %d\n", num_workers);
-    write(STDERR_FILENO, num_workers_str, strlen(num_workers_str));
+    // char num_workers_str[32];
+    // memset(&num_workers_str, 0, sizeof(num_workers_str));
+    // sprintf(num_workers_str, "workers: %d\n", num_workers);
+    // write(STDERR_FILENO, num_workers_str, strlen(num_workers_str));
 
     // Send (executable, parameter) pairs to workers
     int sent = 0;
@@ -283,17 +265,16 @@ int main(int argc, char *argv[]) {
             results[j].params_tested[i] = atoi(argv[i + 2]);
             sprintf(msg.mtext, "%s %d", results[j].exe_path, results[j].params_tested[i]);
 
-            char exe_txt[128];
-            memset(exe_txt, 0, 128);
-            sprintf(exe_txt, "msg.mtext: %s (%ld)\n", msg.mtext, worker_id);
-            write(STDERR_FILENO, exe_txt, strlen(exe_txt));
+            // char exe_txt[128];
+            // memset(exe_txt, 0, 128);
+            // sprintf(exe_txt, "msg.mtext: %s (%ld)\n", msg.mtext, worker_id);
+            // write(STDERR_FILENO, exe_txt, strlen(exe_txt));
 
             // TODO: Send (executable, parameter) pair to worker via message queue (mtype = worker_id)
             if (msgsnd(msqid, &msg, sizeof(msgbuf_t) - sizeof(long), 0) == -1) {
                 perror("msgsnd");
                 exit(1);
             }
-
             sent++;
         }
     }
@@ -302,16 +283,16 @@ int main(int argc, char *argv[]) {
 
     // TODO: Wait for ACK from workers to tell all workers to start testing (synchronization)
     receive_ack_from_workers(msqid, num_workers);
-    write(STDERR_FILENO, "received ack from workers\n", 27);
+    // write(STDERR_FILENO, "received ack from workers\n", 27);
 
     // TODO: Send message to workers to allow them to start testing
     send_synack_to_workers(msqid, num_workers);
-    write(STDERR_FILENO, "sent synack to workers\n", 24);
+    // write(STDERR_FILENO, "sent synack to workers\n", 24);
 
     // TODO: Wait for all workers to finish and collect their results from message queue
-    write(STDERR_FILENO, "waiting for workers\n", 21);
+    // write(STDERR_FILENO, "waiting for workers\n", 21);
     wait_for_workers(msqid, num_pairs_to_test, argv + 2);
-    write(STDERR_FILENO, "done waiting for workers\n", 26);
+    // write(STDERR_FILENO, "done waiting for workers\n", 26);
 
     // TODO: Remove ALL output files (output/<executable>.<input>)
     for (int i = 2; i < argc; i++) {
@@ -320,30 +301,30 @@ int main(int argc, char *argv[]) {
     }
     
     // print results 
-    for (int i = 0; i < num_executables; ++i) {
-        for (int j = 0; j < total_params; ++j) {
-            char *path = results[i].exe_path;
-            int param = results[i].params_tested[j];
-            int status = results[i].status[j];
+    // for (int i = 0; i < num_executables; ++i) {
+    //     for (int j = 0; j < total_params; ++j) {
+    //         char *path = results[i].exe_path;
+    //         int param = results[i].params_tested[j];
+    //         int status = results[i].status[j];
             
-            char final_results_msg[BUFSIZ];
-            memset(final_results_msg, 0, BUFSIZ);
-            sprintf(final_results_msg, 
-                    "(%d, %d)\n---------------------\npath: %s\nparam: %d\nstatus: %d\n---------------------\n",
-                    i, j, path, param, status);
-            write(STDERR_FILENO, final_results_msg, strlen(final_results_msg));
-        }
-    }
+    //         char final_results_msg[BUFSIZ];
+    //         memset(final_results_msg, 0, BUFSIZ);
+    //         sprintf(final_results_msg, 
+    //                 "(%d, %d)\n---------------------\npath: %s\nparam: %d\nstatus: %d\n---------------------\n",
+    //                 i, j, path, param, status);
+    //         write(STDERR_FILENO, final_results_msg, strlen(final_results_msg));
+    //     }
+    // }
 
     write_results_to_file(results, num_executables, total_params);
-    write(STDERR_FILENO, "wrote results to files\n", 24);
+    // write(STDERR_FILENO, "wrote results to files\n", 24);
 
     // You can use this to debug your scores function
     // get_score("results.txt", results[0].exe_path);
 
     // Print each score to scores.txt
     write_scores_to_file(results, num_executables, "results.txt");
-    write(STDERR_FILENO, "wrote scores to file\n", 2);
+    // write(STDERR_FILENO, "wrote scores to file\n", 2);
 
     // TODO: Remove the message queue
     if (msgctl(msqid, IPC_RMID, NULL) == -1) {
@@ -362,7 +343,7 @@ int main(int argc, char *argv[]) {
     free(executable_paths);
     free(workers);
     
-    write(STDERR_FILENO, "mq_autograder terminating\n", 27);
+    // write(STDERR_FILENO, "mq_autograder terminating\n", 27);
 
     return 0;
 }

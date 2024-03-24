@@ -78,7 +78,7 @@ char **get_student_executables(char *solution_dir, int *num_executables) {
 
 // TODO: Implement this function
 int get_batch_size() {
-    FILE *fp = fopen("/proc/cpuinfo", "r");
+    FILE *fp = fopen("/proc/cpuinfo", "r"); // Open the cpuinfo file
     if (fp == NULL) {
         perror("error opening cpuinfo");
         return -1; // Indicate failure
@@ -86,8 +86,8 @@ int get_batch_size() {
 
     char line[256];
     int count = 0;
-    while (fgets(line, sizeof(line), fp)) {
-        if (strncmp(line, "processor", 9) == 0) {
+    while (fgets(line, sizeof(line), fp)) { // Read the file line by line
+        if (strncmp(line, "processor", 9) == 0) { // Check for processors
             count++;
         }
     }
@@ -101,15 +101,15 @@ int get_batch_size() {
 void create_input_files(char **argv_params, int num_parameters) {
     for (int i = 0; i < num_parameters; ++i) {
         char buff[BUFSIZ];
-        sprintf(buff, "input/%s.in", argv_params[i]);
-        int fd = open(buff, O_RDWR | O_CREAT, 0666);
+        sprintf(buff, "input/%s.in", argv_params[i]); // Create the input file path
+        int fd = open(buff, O_RDWR | O_CREAT, 0666); // Open the file, create if it doesn't exist
 
         if (fd == -1) {
             perror("error creating input files");
             exit(1);
         }
 
-        if (write(fd, argv_params[i], strlen(argv_params[i])) == -1) {
+        if (write(fd, argv_params[i], strlen(argv_params[i])) == -1) { // Write the parameter to the file
             perror("error writing to input file");
             close(fd);
             exit(1);
@@ -126,7 +126,7 @@ void start_timer(int seconds, void (*timeout_handler)(int)) {
     sigfillset(&sa.sa_mask);
     sa.sa_flags = 0;
     
-    if (sigaction(SIGALRM, &sa, NULL) == -1) {
+    if (sigaction(SIGALRM, &sa, NULL) == -1) { // Set the signal handler for SIGALRM
         perror("sigaction");
         exit(1);
     }
@@ -138,7 +138,7 @@ void start_timer(int seconds, void (*timeout_handler)(int)) {
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
 
-    if (setitimer(ITIMER_REAL, &timer, NULL) == -1) {
+    if (setitimer(ITIMER_REAL, &timer, NULL) == -1) { // Set the timer to send SIGALRM every TIMEOUT_SECS
         perror("error setting timer");
         exit(1);
     }
@@ -160,8 +160,8 @@ void cancel_timer() {
 void remove_input_files(char **argv_params, int num_parameters) {
     for (int i = 0; i < num_parameters; ++i) {
     char buff[BUFSIZ];
-    sprintf(buff, "input/%s.in", argv_params[i]);
-        if (unlink(buff) == -1) {
+    sprintf(buff, "input/%s.in", argv_params[i]); // Create the input file path
+        if (unlink(buff) == -1) { // Remove the input file
             perror("error removing input files");
             exit(1);
         }
@@ -171,10 +171,10 @@ void remove_input_files(char **argv_params, int num_parameters) {
 
 // TODO: Implement this function
 void remove_output_files(autograder_results_t *results, int tested, int current_batch_size, char *param) {
-    for (int i = (tested - current_batch_size); i < tested; i++) {
+    for (int i = (tested - current_batch_size); i < tested; i++) { // Remove the output files for the last batch
         char buff[BUFSIZ];
-        sprintf(buff, "output/%s.%s", get_exe_name(results[i].exe_path), param);
-        if (unlink(buff) == -1) {
+        sprintf(buff, "output/%s.%s", get_exe_name(results[i].exe_path), param); // Create the output file path
+        if (unlink(buff) == -1) { // Remove the output file
             perror("error removing output files");
             exit(1);
         }
@@ -248,16 +248,15 @@ void write_results_to_file(autograder_results_t *results, int num_executables, i
 
 // TODO: Implement this function
 double get_score(char *results_file, char *executable_name) {
-    FILE* file = fopen(results_file, "r");
+    FILE* file = fopen(results_file, "r"); // Open the results file
     if (file == NULL) {
         perror("error opening results file");
         exit(1);
     }
 
-    executable_name = get_exe_name(executable_name);
+    executable_name = get_exe_name(executable_name); // Get the executable name (minus the path)
 
     char line[BUFSIZ];
-    size_t len = 0;
 
     // Read the first line to determine its length
     if (fgets(line, sizeof(line), file) == NULL) {
@@ -271,7 +270,7 @@ double get_score(char *results_file, char *executable_name) {
 
     fseek(file, line_number * line_length, SEEK_SET); // Seek to the line containing the executable's results
 
-    if (fgets(line, sizeof(line), file) == NULL) {
+    if (fgets(line, sizeof(line), file) == NULL) { // Read the line containing the executable's results
         perror("error reading line");
         fclose(file);
         exit(1);
@@ -279,14 +278,14 @@ double get_score(char *results_file, char *executable_name) {
 
     int correct_answers = 0;
     int total_tests = 0;
-    char *p = strtok(line, " ");
+    char *p = strtok(line, " "); // Tokenize the line
     while (p != NULL) {
-        if (strstr(p, "(") != NULL) {
+        if (strstr(p, "(") != NULL) { // Check if the token contains a "(" indicating a test
             total_tests++;
-        } else if (strstr(p, "correct)") != NULL) {
+        } else if (strstr(p, "correct)") != NULL) { // Check if the test was correct
             correct_answers++;
         }
-        p = strtok(NULL, " ");
+        p = strtok(NULL, " "); // Get the next token
     }
 
     fclose(file);
