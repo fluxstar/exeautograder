@@ -5,7 +5,10 @@
         "msg.h": "c",
         "*.ipp": "c",
         "*.tcc": "c",
-        "cerrno": "c"
+        "cerrno": "c",
+        "string": "c",
+        "istream": "c",
+        "streambuf": "c"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }

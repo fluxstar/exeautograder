@@ -173,10 +173,11 @@ void monitor_and_evaluate_solutions(int tested, char *param, int param_idx) {
 
         // TODO: Also, update the results struct with the status of the child process
         char output_file[BUFSIZ];
-        char* filename = strrchr(results[tested - curr_batch_size + j].exe_path, '/');
-        if (filename != NULL) {
-            ++filename;
-        }
+        char* filename = get_exe_name(results[tested - curr_batch_size + j].exe_path);
+        // strrchr(results[tested - curr_batch_size + j].exe_path, '/');
+        // if (filename != NULL) {
+        //     ++filename;
+        // }
         sprintf(output_file, "output/%s.%s", filename, param);
         int output_fd = open(output_file, O_RDONLY);
         if (output_fd == -1) {  
@@ -283,7 +284,7 @@ int main(int argc, char *argv[]) {
     write_results_to_file(results, num_executables, total_params);
 
     // You can use this to debug your scores function
-    // get_score("results.txt", results[0].exe_path);
+    get_score("results.txt", results[0].exe_path);
 
     // Print each score to scores.txt
     write_scores_to_file(results, num_executables, "results.txt");

@@ -42,9 +42,6 @@ int main(int argc, char *argv[]) {
     #elif PIPE
     int fd = atoi(argv[1]);  // Convert the string to an integer
 
-    write(STDERR_FILENO, &fd, sizeof(fd));
-    fprintf(stderr, "%d", fd);
-
     if ((read(fd, &param, sizeof(param))) == -1) {
         perror("pipe read");
         exit(1);
