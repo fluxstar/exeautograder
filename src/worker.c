@@ -59,6 +59,12 @@ void execute_solution(char *executable_path, int param, int batch_idx) {
         char param_str[32];
         memset(param_str, 0, sizeof(param_str));
         sprintf(param_str, "%d", param);
+
+        char exe_sol_msg[BUFSIZ];
+        memset(exe_sol_msg, 0, BUFSIZ);
+        sprintf(exe_sol_msg, "executing: %s, param: %d, param_str: %s\n", executable_name, param, param_str);
+        write(STDERR_FILENO, exe_sol_msg, strlen(exe_sol_msg));
+
         execlp(executable_path, executable_name, param_str, (char *) NULL);
 
         perror("Failed to execute program in worker");
@@ -236,7 +242,7 @@ int main(int argc, char **argv) {
             exit(1);
         }
         
-        char exec_path[128];
+        char exec_path[BUFSIZ];
         memset(&exec_path, 0, sizeof(exec_path));
 
         if (sscanf(exec_msg.mtext, "%s %d", exec_path, &pairs[i].parameter) != 2) {
@@ -248,9 +254,9 @@ int main(int argc, char **argv) {
         strcpy(pairs[i].executable_path, exec_path);
         pairs[i].status = 0;
 
-        char msg[128];
-        memset(msg, 0, 128);
-        sprintf(msg, "worker %ld received: %s\n", worker_id, exec_msg.mtext);
+        char msg[BUFSIZ];
+        memset(msg, 0, BUFSIZ);
+        sprintf(msg, "worker %ld received: %s -> exe_path: %s, param: %d\n", worker_id, exec_msg.mtext, pairs[i].executable_path, pairs[i].parameter);
         write(STDERR_FILENO, msg, strlen(msg));
     }
 

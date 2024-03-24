@@ -104,6 +104,12 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
         worker_done[i] = 0;
     }
     
+    // track number of times an executable has returned a result 
+    // (executable idx same as results)
+    // (don't assume num workers/cores proportional to num executables)
+    int *param_stat_idx = malloc(sizeof(int) * num_executables);
+    memset(param_stat_idx, 0, sizeof(int) * num_executables);
+
     while (received < pairs_to_test) {
         for (int i = 0; i < num_workers; i++) {
             if (worker_done[i] == 1) {
@@ -131,8 +137,8 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
             //       If message is "DONE", set worker_done[i] to 1 and break out of loop.
             //       Messages will have the format ("%s %d %d", executable_path, parameter, status)
             //       so consider using sscanf() to parse the message.
-            int param_stat_idx = 0;
-
+            
+            // int param_stat_idx = 0;
             while (1) {
                 write(STDERR_FILENO, "receiving results...\n", 22);
 
@@ -173,27 +179,43 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
                         results_idx = i;
                     }
                 }
- 
-                results[results_idx].params_tested[param_stat_idx] = param;
-                results[results_idx].status[param_stat_idx] = status;
 
+                results[results_idx].params_tested[param_stat_idx[results_idx]] = param;
+                results[results_idx].status[param_stat_idx[results_idx]] = status;
+ 
                 char result_msg[BUFSIZ];
                 memset(result_msg, 0, sizeof(result_msg));
                 sprintf(result_msg, 
                         "(%d, %d)\n---------------------\nexe_path: %s\nparam: %d\nstatus: %d\n---------------------\n",
-                        results_idx, param_stat_idx,
+                        results_idx, param_stat_idx[results_idx],
                         results[results_idx].exe_path,
-                        results[results_idx].params_tested[param_stat_idx],
-                        results[results_idx].status[param_stat_idx]);
+                        results[results_idx].params_tested[param_stat_idx[results_idx]],
+                        results[results_idx].status[param_stat_idx[results_idx]]);
                 write(STDERR_FILENO, result_msg, strlen(result_msg));
-
                 ++received;
-                if (received % num_executables == 0) {
-                    ++param_stat_idx;
-                }
+                ++param_stat_idx[results_idx];
+
+                // results[results_idx].params_tested[param_stat_idx] = param;
+                // results[results_idx].status[param_stat_idx] = status;
+
+                // char result_msg[BUFSIZ];
+                // memset(result_msg, 0, sizeof(result_msg));
+                // sprintf(result_msg, 
+                //         "(%d, %d)\n---------------------\nexe_path: %s\nparam: %d\nstatus: %d\n---------------------\n",
+                //         results_idx, param_stat_idx,
+                //         results[results_idx].exe_path,
+                //         results[results_idx].params_tested[param_stat_idx],
+                //         results[results_idx].status[param_stat_idx]);
+                // write(STDERR_FILENO, result_msg, strlen(result_msg));
+
+                // ++received;
+                // if (received % num_executables == 0) {
+                //     ++param_stat_idx;
+                // }
             }
         }
     }
+    free(param_stat_idx);
     free(worker_done);
     write(STDERR_FILENO, "grader done waiting for workers\n", 33);
 }

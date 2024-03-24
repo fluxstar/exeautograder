@@ -31,8 +31,7 @@ int main(int argc, char *argv[]) {
 
     // TODO: Get input param from the different sources
     #ifdef EXEC
-        
-    
+
     param = atoi((char *) argv[1]);
 
     #elif REDIR
@@ -51,6 +50,7 @@ int main(int argc, char *argv[]) {
 
     #elif MQUEUE
 
+    param = atoi((char *) argv[1]);
 
     #endif
 
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     switch (mode) {
         case 1:
             // Using fprintf(stderr, ...) since STDOUT is redirected to a file
-            fprintf(stderr, "Program: %s, PID: %d, Mode: 1 - Exiting with status 0 (Correct answer)\n", argv[0], pid);
+            fprintf(stderr, "Program: %s, Param: %d, PID: %d, Mode: 1 - Exiting with status 0 (Correct answer)\n", argv[0], param, pid);
             // TODO: Write the result (0) to the output file (output/<executable>.<input>)
             //       Do not open the file. Think about what function you can use to output
             //       information given what you redirected in the autograder.c file.
@@ -71,21 +71,21 @@ int main(int argc, char *argv[]) {
             printf("%d", 1);
             break;
         case 2:
-            fprintf(stderr, "Program: %s, PID: %d, Mode: 2 - Exiting with status 1 (Incorrect answer)\n", argv[0], pid);
+            fprintf(stderr, "Program: %s, Param: %d, PID: %d, Mode: 2 - Exiting with status 1 (Incorrect answer)\n", argv[0], param, pid);
             // TODO: Write the result (1) to the output file (same as case 1 above)
             
             printf("%d", 2);
             break;
         case 3:
-            fprintf(stderr, "Program: %s, PID: %d, Mode: 3 - Triggering a segmentation fault\n", argv[0], pid);
+            fprintf(stderr, "Program: %s, Param: %d, PID: %d, Mode: 3 - Triggering a segmentation fault\n", argv[0], param, pid);
             raise(SIGSEGV);  // Trigger a segmentation fault
             break;
         case 4:
-            fprintf(stderr, "Program: %s, PID: %d, Mode: 4 - Entering an infinite loop\n", argv[0], pid);
+            fprintf(stderr, "Program: %s, Param: %d, PID: %d, Mode: 4 - Entering an infinite loop\n", argv[0], param, pid);
             infinite_loop();
             break;
         case 5:
-            fprintf(stderr, "Program: %s, PID: %d, Mode: 5 - Simulating being stuck/blocked\n", argv[0], pid);
+            fprintf(stderr, "Program: %s, Param: %d, PID: %d, Mode: 5 - Simulating being stuck/blocked\n", argv[0], param, pid);
             pause();  // Simulate being stuck/blocked
             break;
         default:
