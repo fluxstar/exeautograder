@@ -27,17 +27,15 @@ void launch_worker(int msqid, int pairs_per_worker, int worker_id) {
         // TODO: exec() the worker program and pass it the message queue id and worker id.
         //       Use ./worker as the path to the worker program.
         execlp("./worker", "worker", str_msqid, str_workerid, NULL);
-
         perror("Failed to spawn worker");
         exit(1);
     } 
-    // Parent process
-    else if (pid > 0) {
+    else if (pid > 0) { // Parent process
         // TODO: Send the total number of pairs to worker via message queue (mtype = worker_id)
         msgbuf_t msg;
         msg.mtype = worker_id;
         sprintf(msg.mtext, "%d", pairs_per_worker);
-        
+
         if (msgsnd(msqid, &msg, sizeof(msgbuf_t) - sizeof(long), 0) == -1) {
             perror("msgsnd");
             exit(1);
@@ -57,6 +55,7 @@ void launch_worker(int msqid, int pairs_per_worker, int worker_id) {
 // TODO: Receive ACK from all workers using message queue (mtype = BROADCAST_MTYPE)
 void receive_ack_from_workers(int msqid, int num_workers) {
     int acks = 0;
+    // block until we receive an ack from each worker
     while (acks != num_workers) {
         msgbuf_t ack_msg;
         memset(&ack_msg, 0, sizeof(msgbuf_t));
@@ -68,16 +67,6 @@ void receive_ack_from_workers(int msqid, int num_workers) {
             ++acks;
         }
     }
-
-    // for (int i = 0; i < num_workers; i++) {
-    //     // Receive ACK message from each worker
-    //     msgbuf_t ack_msg;
-    //     if (msgrcv(msqid, &ack_msg, sizeof(msgbuf_t) - sizeof(long), BROADCAST_MTYPE, 0) == -1) {
-    //         perror("Failed to receive ACK from worker");
-    //         exit(1);
-    //         // sprintf(ack_msg + sizeof(long), "%d", pairs_per_worker);  
-    //     }
-    // }    
 }
 
 
@@ -87,6 +76,7 @@ void send_synack_to_workers(int msqid, int num_workers) {
     memset(&synack, 0, sizeof(msgbuf_t));
     synack.mtype = BROADCAST_MTYPE;
     sprintf(synack.mtext, "%s", "SYNACK");
+
     // Loop through each worker to send them a SYNACK message
     for (int i = 0; i < num_workers; i ++) {
         if (msgsnd(msqid, &synack, sizeof(msgbuf_t) - sizeof(long), 0) == -1) {
@@ -137,11 +127,7 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
             //       If message is "DONE", set worker_done[i] to 1 and break out of loop.
             //       Messages will have the format ("%s %d %d", executable_path, parameter, status)
             //       so consider using sscanf() to parse the message.
-            
-            // int param_stat_idx = 0;
             while (1) {
-                // write(STDERR_FILENO, "receiving results...\n", 22);
-
                 msgbuf_t worker_msg;
                 char executable_path[BUF_SIZE];
                 memset(executable_path, 0, sizeof(executable_path));
@@ -154,11 +140,6 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
                 }
 
                 if (strcmp("DONE", worker_msg.mtext) == 0) {
-                    // char done_msg[128];
-                    // memset(done_msg, 0, 128);
-                    // sprintf(done_msg, "worker %d done, no longer monitoring for\n", i + 1);
-                    // write(STDERR_FILENO, done_msg, strlen(done_msg));
-
                     worker_done[i] = 1;
                     break;
                 }
@@ -168,11 +149,14 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
                     exit(1);
                 }
 
-                // char wr_msg[BUFSIZ];
-                // memset(wr_msg, 0, BUFSIZ);
-                // sprintf(wr_msg, "received:\n%s %d %d\n", executable_path, param, status);
-                // write(STDERR_FILENO, wr_msg, strlen(wr_msg));
+                // if (status > 4 || status < 1) {
+                //     char param_msg[BUFSIZ];
+                //     memset(param_msg, 0, BUFSIZ);
+                //     sprintf(param_msg, "out of range status (%d) received for %s (%d)\n", status, executable_path, param);
+                //     write(STDERR_FILENO, param_msg, strlen(param_msg));
+                // }
 
+                // Get executable record in results for writing
                 int results_idx = 0;
                 for (int i = 0; i < num_executables; ++i) {
                     if (strcmp(results[i].exe_path, executable_path) == 0) {
@@ -183,15 +167,6 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
                 results[results_idx].params_tested[param_stat_idx[results_idx]] = param;
                 results[results_idx].status[param_stat_idx[results_idx]] = status;
  
-                // char result_msg[BUFSIZ];
-                // memset(result_msg, 0, sizeof(result_msg));
-                // sprintf(result_msg, 
-                //         "(%d, %d)\n---------------------\nexe_path: %s\nparam: %d\nstatus: %d\n---------------------\n",
-                //         results_idx, param_stat_idx[results_idx],
-                //         results[results_idx].exe_path,
-                //         results[results_idx].params_tested[param_stat_idx[results_idx]],
-                //         results[results_idx].status[param_stat_idx[results_idx]]);
-                // write(STDERR_FILENO, result_msg, strlen(result_msg));
                 ++received;
                 ++param_stat_idx[results_idx];
             }
@@ -199,7 +174,6 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
     }
     free(param_stat_idx);
     free(worker_done);
-    // write(STDERR_FILENO, "grader done waiting for workers\n", 33);
 }
 
 
@@ -250,11 +224,6 @@ int main(int argc, char *argv[]) {
         launch_worker(msqid, pairs_per_worker, i + 1);
     }
 
-    // char num_workers_str[32];
-    // memset(&num_workers_str, 0, sizeof(num_workers_str));
-    // sprintf(num_workers_str, "workers: %d\n", num_workers);
-    // write(STDERR_FILENO, num_workers_str, strlen(num_workers_str));
-
     // Send (executable, parameter) pairs to workers
     int sent = 0;
     for (int i = 0; i < total_params; i++) {
@@ -265,11 +234,6 @@ int main(int argc, char *argv[]) {
             results[j].params_tested[i] = atoi(argv[i + 2]);
             sprintf(msg.mtext, "%s %d", results[j].exe_path, results[j].params_tested[i]);
 
-            // char exe_txt[128];
-            // memset(exe_txt, 0, 128);
-            // sprintf(exe_txt, "msg.mtext: %s (%ld)\n", msg.mtext, worker_id);
-            // write(STDERR_FILENO, exe_txt, strlen(exe_txt));
-
             // TODO: Send (executable, parameter) pair to worker via message queue (mtype = worker_id)
             if (msgsnd(msqid, &msg, sizeof(msgbuf_t) - sizeof(long), 0) == -1) {
                 perror("msgsnd");
@@ -279,20 +243,14 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // exit(1);
-
     // TODO: Wait for ACK from workers to tell all workers to start testing (synchronization)
     receive_ack_from_workers(msqid, num_workers);
-    // write(STDERR_FILENO, "received ack from workers\n", 27);
 
     // TODO: Send message to workers to allow them to start testing
     send_synack_to_workers(msqid, num_workers);
-    // write(STDERR_FILENO, "sent synack to workers\n", 24);
 
     // TODO: Wait for all workers to finish and collect their results from message queue
-    // write(STDERR_FILENO, "waiting for workers\n", 21);
     wait_for_workers(msqid, num_pairs_to_test, argv + 2);
-    // write(STDERR_FILENO, "done waiting for workers\n", 26);
 
     // TODO: Remove ALL output files (output/<executable>.<input>)
     for (int i = 2; i < argc; i++) {
@@ -320,31 +278,13 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // print results 
-    // for (int i = 0; i < num_executables; ++i) {
-    //     for (int j = 0; j < total_params; ++j) {
-    //         char *path = results[i].exe_path;
-    //         int param = results[i].params_tested[j];
-    //         int status = results[i].status[j];
-            
-    //         char final_results_msg[BUFSIZ];
-    //         memset(final_results_msg, 0, BUFSIZ);
-    //         sprintf(final_results_msg, 
-    //                 "(%d, %d)\n---------------------\npath: %s\nparam: %d\nstatus: %d\n---------------------\n",
-    //                 i, j, path, param, status);
-    //         write(STDERR_FILENO, final_results_msg, strlen(final_results_msg));
-    //     }
-    // }
-
     write_results_to_file(results, num_executables, total_params);
-    // write(STDERR_FILENO, "wrote results to files\n", 24);
 
     // You can use this to debug your scores function
     // get_score("results.txt", results[0].exe_path);
 
     // Print each score to scores.txt
     write_scores_to_file(results, num_executables, "results.txt");
-    // write(STDERR_FILENO, "wrote scores to file\n", 2);
 
     // TODO: Remove the message queue
     if (msgctl(msqid, IPC_RMID, NULL) == -1) {
@@ -363,7 +303,5 @@ int main(int argc, char *argv[]) {
     free(executable_paths);
     free(workers);
     
-    // write(STDERR_FILENO, "mq_autograder terminating\n", 27);
-
     return 0;
 }

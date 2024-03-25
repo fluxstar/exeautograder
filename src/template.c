@@ -74,12 +74,14 @@ int main(int argc, char *argv[]) {
             //       information given what you redirected in the autograder.c file.
 
             printf("%d", 0);
+            fflush(stdout);
             break;
         case 2:
             fprintf(stderr, "Program: %s, Param: %d, PID: %d, Mode: 2 - Exiting with status 1 (Incorrect answer)\n", argv[0], param, pid);
             // TODO: Write the result (1) to the output file (same as case 1 above)
             
             printf("%d", 1);
+            fflush(stdout);
             break;
         case 3:
             fprintf(stderr, "Program: %s, Param: %d, PID: %d, Mode: 3 - Triggering a segmentation fault\n", argv[0], param, pid);

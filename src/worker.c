@@ -24,10 +24,6 @@ long worker_id;        // Used for sending/receiving messages from the message q
 // TODO: Timeout handler for alarm signal - should be the same as the one in autograder.c
 void timeout_handler(int signum) {
     // Kill everything 
-    // write(STDERR_FILENO, "timed out\n", 10);
-    // for (int i = 0; i < curr_batch_size; ++i) {
-    //     kill(pids[i], SIGKILL);
-    // }
     for (int i = 0; i < curr_batch_size; ++i) {
         if (child_status[i] == 1 && pids[i] > 0) {
             kill(pids[i], SIGKILL);   
@@ -39,7 +35,6 @@ void timeout_handler(int signum) {
 
 // Execute the student's executable using exec()
 void execute_solution(char *executable_path, int param, int batch_idx) {
- 
     pid_t pid = fork();
 
     // Child process
@@ -66,21 +61,9 @@ void execute_solution(char *executable_path, int param, int batch_idx) {
         memset(param_str, 0, sizeof(param_str));
         sprintf(param_str, "%d", param);
 
-        // char exe_sol_msg[BUFSIZ];
-        // memset(exe_sol_msg, 0, BUFSIZ);
-        // sprintf(exe_sol_msg, "executing: %s, param: %d, param_str: %s\n", executable_name, param, param_str);
-        // write(STDERR_FILENO, exe_sol_msg, strlen(exe_sol_msg));
-
         execlp(executable_path, executable_name, param_str, (char *) NULL);
 
         perror("Failed to execute program in worker");
-        // write(STDERR_FILENO, "\n", 1);
-        // write(STDERR_FILENO, executable_path, strlen(executable_path));
-        // write(STDERR_FILENO, "\n", 1);
-        // write(STDERR_FILENO, executable_name, strlen(executable_name));
-        // write(STDERR_FILENO, "\n", 1);
-        // write(STDERR_FILENO, param_str, strlen(param_str));
-        // write(STDERR_FILENO, "\n", 1);
         exit(1);
     }
     // Parent process
@@ -112,15 +95,9 @@ void monitor_and_evaluate_solutions(int finished) {
         pid_t pid = waitpid(pids[j], &status, 0);
 
         // TODO: What if waitpid is interrupted by a signal?
-
         while (pid == -1 && errno == EINTR) {
             pid = waitpid(pids[j], &status, 0);
         }
-
-        // char msg[128];
-        // memset(msg, 0, sizeof(msg));
-        // sprintf(msg, "%s (%d) returned\n", current_exe_path, current_param);
-        // write(STDERR_FILENO, msg, strlen(msg));
 
         // int exit_status = WEXITSTATUS(status);
         // int exited = WIFEXITED(status);
@@ -151,12 +128,12 @@ void monitor_and_evaluate_solutions(int finished) {
         
         sprintf(output_file, "output/%s.%d", filename, pairs[j].parameter);
         int output_fd = open(output_file, O_RDONLY);
-        
         if (output_fd == -1) {  
             perror("open");
             exit(1);
         }
         
+        // If file was written to, override pervious status
         char buffer[BUFSIZ];
         ssize_t num_bytes = read(output_fd, buffer, sizeof(buffer));
         if (num_bytes == -1) {
@@ -214,11 +191,6 @@ int main(int argc, char **argv) {
     int msqid = atoi(argv[1]);
     worker_id = atoi(argv[2]);
 
-    // char wid[32];
-    // memset(&wid, 0, 32);
-    // sprintf(wid, "worker: %ld\n", worker_id);
-    // write(STDERR_FILENO, wid, strlen(wid));
-
     // TODO: Receive initial message from autograder specifying the number of (executable, parameter) 
     // pairs that the worker will test (should just be an integer in the message body). (mtype = worker_id)
 
@@ -228,16 +200,9 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    // write(STDERR_FILENO, "worker received msg\n", 20);
-
     // TODO: Parse message and set up pairs_t array
     int pairs_to_test = atoi(msg.mtext);
     pairs = malloc(sizeof(pairs_t) * pairs_to_test);
-
-    // char pairs_str[128];
-    // memset(pairs_str, 0, 128);
-    // sprintf(pairs_str, "pairs to test: %d\n", pairs_to_test);
-    // write(STDERR_FILENO, pairs_str, strlen(pairs_str));
 
     // TODO: Receive (executable, parameter) pairs from autograder and store them in pairs_t array.
     //       Messages will have the format ("%s %d", executable_path, parameter). (mtype = worker_id)
@@ -259,20 +224,14 @@ int main(int argc, char **argv) {
         pairs[i].executable_path = malloc(strlen(exec_path));
         strcpy(pairs[i].executable_path, exec_path);
         pairs[i].status = 0;
-
-        // char msg[BUFSIZ];
-        // memset(msg, 0, BUFSIZ);
-        // sprintf(msg, "worker %ld received: %s -> exe_path: %s, param: %d\n", worker_id, exec_msg.mtext, pairs[i].executable_path, pairs[i].parameter);
-        // write(STDERR_FILENO, msg, strlen(msg));
     }
-
-    // write(STDERR_FILENO, "worker all received pairs\n", 27);
 
     // TODO: Send ACK message to mq_autograder after all pairs received (mtype = BROADCAST_MTYPE)
 
     // TODO: Wait for SYNACK from autograder to start testing (mtype = BROADCAST_MTYPE).
     //       Be careful to account for the possibility of receiving ACK messages just sent.
 
+    // Send ack to parent until it receives it (if we consumed an ack, resend it)
     msgbuf_t synacks;
     while (1) {
         msgbuf_t ack;
@@ -280,7 +239,6 @@ int main(int argc, char **argv) {
         ack.mtype = BROADCAST_MTYPE;
         sprintf(ack.mtext, "%s", "ACK");
 
-        // write(STDERR_FILENO, "worker sent ack\n", 16);
         if (msgsnd(msqid, &ack, sizeof(msgbuf_t) - sizeof(long), 0) == -1) {
             perror("failed to send acknowledgement"); 
             exit(1);
@@ -296,11 +254,7 @@ int main(int argc, char **argv) {
         if (strcmp(synacks.mtext, "SYNACK") == 0) {
             break;
         }
-        // write(STDERR_FILENO, "worker did not receive synack, retrying\n", 41);
     }
-
-    // write(STDERR_FILENO, "worker received synack\n", 23);
-    // write(STDERR_FILENO, "worker getting to work\n", 23);
 
     // Run the pairs in batches of 8 and send results back to autograder
     for (int i = 0; i < pairs_to_test; i+= PAIRS_BATCH_SIZE) {
@@ -318,15 +272,9 @@ int main(int argc, char **argv) {
 
         // TODO: Wait for the batch to finish and check results
         monitor_and_evaluate_solutions(i); // stuck in here
-        // write(STDERR_FILENO, "sending results to autograder\n", 30);
 
         // TODO: Cancel the timer if all child processes have finished
         if (child_status == NULL) {
-            // char c_msg[128];
-            // memset(c_msg, 0, 128);
-            // sprintf(c_msg, "canceled timer for worker %ld\n", worker_id);
-            // write(STDERR_FILENO, c_msg, strlen(c_msg));
-
             cancel_timer();
         } 
 
@@ -339,19 +287,9 @@ int main(int argc, char **argv) {
     // TODO: Send DONE message to autograder to indicate that the worker has finished testing
     send_done_msg(msqid, worker_id);
 
-    // char done_msg[128];
-    // memset(done_msg, 0, 128);
-    // sprintf(done_msg, "worker %ld sent done msg\n", worker_id);
-    // write(STDERR_FILENO, done_msg, strlen(done_msg));
-
     // Free the pairs_t array
     for (int i = 0; i < pairs_to_test; i++) {
         free(pairs[i].executable_path);
     }
     free(pairs);
-
-    // char ret_msg[128];
-    // memset(ret_msg, 0, 128);
-    // sprintf(ret_msg, "worker %ld finished; terminating\n", worker_id);
-    // write(STDERR_FILENO, ret_msg, strlen(ret_msg));
 }
