@@ -55,14 +55,17 @@ void launch_worker(int msqid, int pairs_per_worker, int worker_id) {
 // TODO: Receive ACK from all workers using message queue (mtype = BROADCAST_MTYPE)
 void receive_ack_from_workers(int msqid, int num_workers) {
     int acks = 0;
-    // block until we receive an ack from each worker
+
+    // keep looking for acks until w receive an ack from each worker
     while (acks != num_workers) {
         msgbuf_t ack_msg;
         memset(&ack_msg, 0, sizeof(msgbuf_t));
+
         if (msgrcv(msqid, &ack_msg, sizeof(msgbuf_t) - sizeof(long), BROADCAST_MTYPE, 0) == -1) {
             perror("failed to receive ack from worker");
             exit(1);
         }
+
         if (strcmp(ack_msg.mtext, "ACK") == 0) {
             ++acks;
         }
@@ -135,26 +138,20 @@ void wait_for_workers(int msqid, int pairs_to_test, char **argv_params) {
                 int status;
 
                 if (msgrcv(msqid, &worker_msg, sizeof(msgbuf_t) - sizeof(long), i + 1, msgflg) == -1) {
-                    sleep(1);
                     continue;
                 }
 
+                // go to next worker when 1 is done
                 if (strcmp("DONE", worker_msg.mtext) == 0) {
                     worker_done[i] = 1;
                     break;
                 }
 
+                // receive worker results
                 if (sscanf(worker_msg.mtext, "%s %d %d", executable_path, &param, &status) != 3) {
                     perror("failed to read worker's message");
                     exit(1);
                 }
-
-                // if (status > 4 || status < 1) {
-                //     char param_msg[BUFSIZ];
-                //     memset(param_msg, 0, BUFSIZ);
-                //     sprintf(param_msg, "out of range status (%d) received for %s (%d)\n", status, executable_path, param);
-                //     write(STDERR_FILENO, param_msg, strlen(param_msg));
-                // }
 
                 // Get executable record in results for writing
                 int results_idx = 0;

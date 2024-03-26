@@ -1,0 +1,30 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     autograder
+relocations:
+  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _timeout_handler, symObjAddr: 0x0, symBinAddr: 0x100001E24, symSize: 0xD8 }
+  - { offsetInCU: 0x4D, offset: 0x4D, size: 0x8, addend: 0x0, symName: _pids, symBinAddr: 0x100008010, symSize: 0x0 }
+  - { offsetInCU: 0x8F, offset: 0x8F, size: 0x8, addend: 0x0, symName: _results, symBinAddr: 0x100008018, symSize: 0x0 }
+  - { offsetInCU: 0xE7, offset: 0xE7, size: 0x8, addend: 0x0, symName: _num_executables, symBinAddr: 0x10000800C, symSize: 0x0 }
+  - { offsetInCU: 0xFC, offset: 0xFC, size: 0x8, addend: 0x0, symName: _curr_batch_size, symBinAddr: 0x100008008, symSize: 0x0 }
+  - { offsetInCU: 0x111, offset: 0x111, size: 0x8, addend: 0x0, symName: _total_params, symBinAddr: 0x100008020, symSize: 0x0 }
+  - { offsetInCU: 0x126, offset: 0x126, size: 0x8, addend: 0x0, symName: _child_status, symBinAddr: 0x100008000, symSize: 0x0 }
+  - { offsetInCU: 0x136, offset: 0x136, size: 0x8, addend: 0x0, symName: _timeout_handler, symObjAddr: 0x0, symBinAddr: 0x100001E24, symSize: 0xD8 }
+  - { offsetInCU: 0x176, offset: 0x176, size: 0x8, addend: 0x0, symName: _execute_solution, symObjAddr: 0xD8, symBinAddr: 0x100001EFC, symSize: 0x190 }
+  - { offsetInCU: 0x1FE, offset: 0x1FE, size: 0x8, addend: 0x0, symName: _monitor_and_evaluate_solutions, symObjAddr: 0x268, symBinAddr: 0x10000208C, symSize: 0x45C }
+  - { offsetInCU: 0x31E, offset: 0x31E, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x6C4, symBinAddr: 0x1000024E8, symSize: 0x43C }
+  - { offsetInCU: 0x26, offset: 0x46F, size: 0x8, addend: 0x0, symName: _get_status_message, symObjAddr: 0x0, symBinAddr: 0x100002924, symSize: 0x98 }
+  - { offsetInCU: 0x87, offset: 0x4D0, size: 0x8, addend: 0x0, symName: _get_status_message, symObjAddr: 0x0, symBinAddr: 0x100002924, symSize: 0x98 }
+  - { offsetInCU: 0xAF, offset: 0x4F8, size: 0x8, addend: 0x0, symName: _get_exe_name, symObjAddr: 0xA8, symBinAddr: 0x1000029CC, symSize: 0x2C }
+  - { offsetInCU: 0xD7, offset: 0x520, size: 0x8, addend: 0x0, symName: _get_student_executables, symObjAddr: 0xD4, symBinAddr: 0x1000029F8, symSize: 0x31C }
+  - { offsetInCU: 0x193, offset: 0x5DC, size: 0x8, addend: 0x0, symName: _get_batch_size, symObjAddr: 0x3F0, symBinAddr: 0x100002D14, symSize: 0x118 }
+  - { offsetInCU: 0x1D7, offset: 0x620, size: 0x8, addend: 0x0, symName: _create_input_files, symObjAddr: 0x508, symBinAddr: 0x100002E2C, symSize: 0x170 }
+  - { offsetInCU: 0x24F, offset: 0x698, size: 0x8, addend: 0x0, symName: _start_timer, symObjAddr: 0x678, symBinAddr: 0x100002F9C, symSize: 0xB0 }
+  - { offsetInCU: 0x29D, offset: 0x6E6, size: 0x8, addend: 0x0, symName: _cancel_timer, symObjAddr: 0x728, symBinAddr: 0x10000304C, symSize: 0x58 }
+  - { offsetInCU: 0x2C1, offset: 0x70A, size: 0x8, addend: 0x0, symName: _remove_input_files, symObjAddr: 0x780, symBinAddr: 0x1000030A4, symSize: 0xEC }
+  - { offsetInCU: 0x32B, offset: 0x774, size: 0x8, addend: 0x0, symName: _remove_output_files, symObjAddr: 0x86C, symBinAddr: 0x100003190, symSize: 0x114 }
+  - { offsetInCU: 0x3B1, offset: 0x7FA, size: 0x8, addend: 0x0, symName: _get_longest_len_executable, symObjAddr: 0x980, symBinAddr: 0x1000032A4, symSize: 0xAC }
+  - { offsetInCU: 0x43B, offset: 0x884, size: 0x8, addend: 0x0, symName: _write_results_to_file, symObjAddr: 0xA2C, symBinAddr: 0x100003350, symSize: 0x3F4 }
+  - { offsetInCU: 0x600, offset: 0xA49, size: 0x8, addend: 0x0, symName: _get_score, symObjAddr: 0xE20, symBinAddr: 0x100003744, symSize: 0x248 }
+  - { offsetInCU: 0x6A0, offset: 0xAE9, size: 0x8, addend: 0x0, symName: _write_scores_to_file, symObjAddr: 0x1068, symBinAddr: 0x10000398C, symSize: 0x1CC }
+...

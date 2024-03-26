@@ -23,9 +23,10 @@ long worker_id;        // Used for sending/receiving messages from the message q
 
 // TODO: Timeout handler for alarm signal - should be the same as the one in autograder.c
 void timeout_handler(int signum) {
-    // Kill everything 
+    // Kill everything still running
+    if (child_status == NULL) return;
     for (int i = 0; i < curr_batch_size; ++i) {
-        if (child_status[i] == 1 && pids[i] > 0) {
+        if (child_status[i] == 1) {
             kill(pids[i], SIGKILL);   
             child_status[i] = -1; 
         }
@@ -57,7 +58,7 @@ void execute_solution(char *executable_path, int param, int batch_idx) {
         }
 
         // TODO: Input to child program can be handled as in the EXEC case (see template.c)
-        char param_str[32];
+        char param_str[BUFSIZ];
         memset(param_str, 0, sizeof(param_str));
         sprintf(param_str, "%d", param);
 
@@ -95,57 +96,61 @@ void monitor_and_evaluate_solutions(int finished) {
         pid_t pid = waitpid(pids[j], &status, 0);
 
         // TODO: What if waitpid is interrupted by a signal?
+        // keep waiting for child if interrupted
         while (pid == -1 && errno == EINTR) {
             pid = waitpid(pids[j], &status, 0);
         }
 
-        // int exit_status = WEXITSTATUS(status);
-        // int exited = WIFEXITED(status);
+        int exit_status = WEXITSTATUS(status);
+        int exited = WIFEXITED(status);
         int signaled = WIFSIGNALED(status);
+        int signal_number = WTERMSIG(status);
 
         // TODO: Check if the process finished normally, segfaulted, or timed out and update the 
         //       pairs array with the results. Use the macros defined in the enum in utils.h for 
         //       the status field of the pairs_t struct (e.g. CORRECT, INCORRECT, SEGFAULT, etc.)
         //       This should be the same as the evaluation in autograder.c, just updating `pairs` 
         //       instead of `results`.
-        
-        // Programs either exit with a status or are killed by a signal
-        if (signaled) {
-            int signal_number = WTERMSIG(status);
+
+        // Child either exited normally or was killed by a signal
+        if (exited) {
+            // Open and read output of child which exited normally
+            char *sol_name = get_exe_name(pairs[finished + j].executable_path);
             
-            if (signal_number == SIGKILL) {
-                // Child process was killed by the alarm
-                pairs[finished + j].status = STUCK_OR_INFINITE;
-            } else if (signal_number == SIGSEGV) {
-                // Child process triggered a segmentation fault
-                pairs[finished + j].status = SEGFAULT;
+            char fn[BUFSIZ];
+            memset(fn, 0, sizeof(fn));
+            sprintf(fn, "output/%s.%d", sol_name, pairs[finished + j].parameter);
+
+            int stat = 0;
+            FILE *fp = fopen(fn, "r");
+            
+            if (fp == NULL) {
+                fprintf(stderr, "could not open fn: %s\n", fn);
             }
-        }
 
-        // TODO: Also, update the results struct with the status of the child process
-        char output_file[BUFSIZ];        
-        char* filename = get_exe_name(pairs[finished + j].executable_path);
-        
-        sprintf(output_file, "output/%s.%d", filename, pairs[j].parameter);
-        int output_fd = open(output_file, O_RDONLY);
-        if (output_fd == -1) {  
-            perror("open");
-            exit(1);
-        }
-        
-        // If file was written to, override pervious status
-        char buffer[BUFSIZ];
-        ssize_t num_bytes = read(output_fd, buffer, sizeof(buffer));
-        if (num_bytes == -1) {
-            perror("read");
-            exit(1);
-        }
+            if (fscanf(fp, "%d", &stat) != 1) {
+                fprintf(stderr, 
+                        "did not receive a value from fn: %s, exe: %s param: %d, pid: %d, signaled: %d (%d), exited: %d (%d)\n",
+                        fn, pairs[finished + j].executable_path, pairs[finished + j].parameter, pid, signaled, signal_number, exited, exit_status);
+            }
+            
+            // Only expect 1 or 0 (incorrect/correct)
+            if (stat > 1 || stat < 0) {
+                fprintf(stderr, 
+                        "received out of range status for exe: %s, param: %d, pid: %d, signaled: %d (%d), exited: %d (%d)\n",
+                        pairs[finished + j].executable_path, pairs[finished + j].parameter, pid, signaled, signal_number, exited, exit_status);
+            }
 
-        if (num_bytes != 0) {
-            buffer[num_bytes] = '\0';  // Null-terminate the buffer
-            pairs[finished + j].status = atoi(buffer) + 1; // Convert from 0/1 to 1/2 to match enum
-        }
-        close(output_fd);
+            // pairs[finished + j].status = stat + 1; // +1 to correspond to mode
+            pairs[finished + j].status = (stat == 0) ? CORRECT : INCORRECT;
+        } else { 
+            // Either killed by a signal (stuck or in inf loop) or segfaulted
+            if (signal_number == SIGKILL) {
+                pairs[finished + j].status = STUCK_OR_INFINITE;
+            } else {
+                pairs[finished + j].status = SEGFAULT;
+            } 
+        } 
 
         // Mark the process as finished
         child_status[j] = -1;
@@ -175,6 +180,7 @@ void send_done_msg(int msqid, long mtype) {
     msgbuf_t msg;
     msg.mtype = mtype;
     sprintf(msg.mtext, "%s", "DONE");
+
     if (msgsnd(msqid, &msg, sizeof(msgbuf_t) - sizeof(long), 0) == -1) {
         perror("failed to send done message");
         exit(1);
@@ -231,11 +237,13 @@ int main(int argc, char **argv) {
     // TODO: Wait for SYNACK from autograder to start testing (mtype = BROADCAST_MTYPE).
     //       Be careful to account for the possibility of receiving ACK messages just sent.
 
-    // Send ack to parent until it receives it (if we consumed an ack, resend it)
+    // Send ack to parent until it receives it and we receive a synack.
+    // if we consumed an ack, resend it
     msgbuf_t synacks;
     while (1) {
         msgbuf_t ack;
         memset(&ack, 0, sizeof(msgbuf_t));
+        memset(&synacks, 0, sizeof(msgbuf_t));
         ack.mtype = BROADCAST_MTYPE;
         sprintf(ack.mtext, "%s", "ACK");
 
@@ -243,8 +251,6 @@ int main(int argc, char **argv) {
             perror("failed to send acknowledgement"); 
             exit(1);
         }
-
-        memset(&synacks, 0, sizeof(msgbuf_t));
 
         if (msgrcv(msqid, &synacks, sizeof(msgbuf_t) - sizeof(long), BROADCAST_MTYPE, 0) == -1) {
             perror("couldn't receive synack from autograder");
